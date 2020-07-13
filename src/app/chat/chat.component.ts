@@ -10,8 +10,10 @@ export class ChatComponent implements OnInit {
   private rtcConfiguration: RTCConfiguration;
   private rtcPeerConnection: RTCPeerConnection;
   private rtcDataChannel: RTCDataChannel;
+  private rtcIceCandidate: RTCIceCandidate;
 
-  localDescription = 'create an offer to start..';
+  localDescription = 'create an offer to start.. or paste an offer into the remoteDescription to get an answer';
+  iceCandidates ='';
 
   constructor() { }
 
@@ -24,7 +26,8 @@ export class ChatComponent implements OnInit {
         {urls: 'stun:stun1.l.google.com:19302'},
         {urls: 'stun:stun2.l.google.com:19302'},
         {urls: 'stun:stun3.l.google.com:19302'},
-        {urls: 'stun:stun4.l.google.com:19302'}
+        {urls: 'stun:stun4.l.google.com:19302'},
+        {urls: 'stun:stun.services.mozilla.com'}
       ]
     };
 
@@ -34,11 +37,21 @@ export class ChatComponent implements OnInit {
     // Create a Data Channel
     this.rtcDataChannel = this.rtcPeerConnection.createDataChannel('chat');
 
+    this.rtcPeerConnection.onicecandidate = this.onicecandidate();
+
+    this.rtcDataChannel.onopen = function() {
+      console.log('rtcDataChannel open');
+    }
+    this.rtcDataChannel.onclose = function() {
+      console.log('rtcDataChannel close');
+    }
+
+    this.rtcPeerConnection.ondatachannel = this.ondatachannel();
+
   }
 
   // Create an Offer
-  createOffer(): void {
-    
+  createOffer(): void {    
     this.rtcPeerConnection.createOffer()
       .then(this.setLocalDescription())
       .catch(this.errorHandler);
@@ -53,12 +66,13 @@ export class ChatComponent implements OnInit {
         .then(() => {
           console.log(this.rtcPeerConnection.localDescription);
           this.localDescription = JSON.stringify(this.rtcPeerConnection.localDescription.toJSON());
+          
         })
         .catch(this.errorHandler);
     };
   }
 
-  // Using copy and paste for signaling, get pasted JSON
+  // Using copy and paste for signaling the Offer and Answer, get pasted JSON
   setRemoteDescription(event: ClipboardEvent) {
     let clipboardData = event.clipboardData;
     let rtcSessionDescription = new RTCSessionDescription(JSON.parse(clipboardData.getData('text')));
@@ -75,15 +89,62 @@ export class ChatComponent implements OnInit {
         .catch(this.errorHandler);
     }
 
-    // If the Remote Description is an Answer then Create 
+    // If the Remote Description is an Answer then Create ICE Candidate
     if (rtcSessionDescription.type == 'answer')
     {
       this.rtcPeerConnection.setRemoteDescription(rtcSessionDescription)
         .then(() => {
-          console.log('handshake complete')
+          console.log('Copy the ice candidate to remote peer to establish channel..');          
         })
         .catch(this.errorHandler);
     }
+  }
+
+  // Log ICE Candidates
+  private onicecandidate(): (string) => void {
+    return (event) => {
+      if (event.candidate) {
+        console.log(event.candidate);
+        this.rtcIceCandidate = event.candidate;
+        this.iceCandidates = JSON.stringify(this.rtcIceCandidate.toJSON());
+      } else {
+        console.log('All ICE candidates have been created');
+      }
+    };
+  }
+
+  // Using copy and paste for signaling the ICE Candidate, get pasted JSON
+  addIceCandidate(event: ClipboardEvent) {
+    let clipboardData = event.clipboardData;
+    let rtcIceCandidate = new RTCIceCandidate(JSON.parse(clipboardData.getData('text')));
+
+    //console.log(rtcIceCandidate);
+    this.rtcPeerConnection.addIceCandidate(rtcIceCandidate)
+      .then(() => {
+        console.log('ICE Candidate Added');        
+      })
+      .catch(this.errorHandler);
+  }
+
+  // Log Data Channel
+  private ondatachannel(): (string) => void {
+    return (event) => {
+      console.log(event.channel);
+      event.channel.onmessage = this.onmessage();
+    }
+  }
+
+  // Log Message
+  private onmessage(): (string) => void {
+    return (event) => {
+      console.log('Received Message ' + event.data);
+    }
+  }
+
+  sendChat(): void {
+    let message = 'this is the first bye.chat message';
+    this.rtcDataChannel.send(message);
+    console.log('Sent Data: ' + message);
   }
 
   // Log errors to the console

@@ -11,3 +11,9 @@
 <ul>remoteDescription</ul>
 <textarea id="remoteDescription" name="remoteDescription" (paste)="setRemoteDescription($event)"></textarea>
 
+<ul>iceCandidates</ul>
+<textarea id="iceCandidates" name="iceCandidates" (paste)="addIceCandidate($event)">{{iceCandidates}}</textarea>
+
+<ul>chat</ul>
+<input type="text" id="chat" name="chat">
+<button mat-button (click)="sendChat()">sendChat</button>
