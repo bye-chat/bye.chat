@@ -9,8 +9,9 @@ export class ChatComponent implements OnInit {
 
   private rtcConfiguration: RTCConfiguration;
   private rtcPeerConnection: RTCPeerConnection;
+  private rtcDataChannel: RTCDataChannel;
 
-  localDescription = 'loading..';
+  localDescription = 'create an offer to start..';
 
   constructor() { }
 
@@ -28,13 +29,22 @@ export class ChatComponent implements OnInit {
     };
 
     // Create a new Peer Connection and pass in the rtcConfiguration
-    this.rtcPeerConnection = new RTCPeerConnection(this.rtcConfiguration);
+    this.rtcPeerConnection = new RTCPeerConnection(null);
 
-    // Create an Offer
-    this.rtcPeerConnection
-      .createOffer()
+    // Create a Data Channel
+    this.rtcDataChannel = this.rtcPeerConnection.createDataChannel('chat');
+    this.rtcDataChannel.
+
+  }
+
+  // Create an Offer
+  createOffer(): void {
+    
+    this.rtcPeerConnection.createOffer()
       .then(this.setLocalDescription())
       .catch(this.errorHandler);
+  
+    console.log(this.rtcPeerConnection.getConfiguration());
   }
 
   // Set the Local Description with the Session Description Protocol (SDP)
@@ -43,24 +53,38 @@ export class ChatComponent implements OnInit {
       this.rtcPeerConnection.setLocalDescription(rtcSessionDescription)
         .then(() => {
           console.log(this.rtcPeerConnection.localDescription);
-          this.localDescription = this.rtcPeerConnection.localDescription.sdp;
+          this.localDescription = JSON.stringify(this.rtcPeerConnection.localDescription.toJSON());
         })
         .catch(this.errorHandler);
     };
   }
 
-  // Using copy and paste for signaling, get pasted SDP and Create an Answer
+  // Using copy and paste for signaling, get pasted JSON
   setRemoteDescription(event: ClipboardEvent) {
     let clipboardData = event.clipboardData;
+    let rtcSessionDescription = new RTCSessionDescription(JSON.parse(clipboardData.getData('text')));
 
-    this.rtcPeerConnection.setRemoteDescription({ type: 'offer', sdp: clipboardData.getData('text') })
-      .then(() => {
-        this.rtcPeerConnection
-          .createAnswer()
-          .then(this.setLocalDescription())
-          .catch(this.errorHandler);
-      })
-      .catch(this.errorHandler);
+    // If the Remote Description is an Offer then Create an Answer
+    if (rtcSessionDescription.type == 'offer')
+    {
+      this.rtcPeerConnection.setRemoteDescription(rtcSessionDescription)
+        .then(() => {
+          this.rtcPeerConnection.createAnswer()
+            .then(this.setLocalDescription())
+            .catch(this.errorHandler);
+        })
+        .catch(this.errorHandler);
+    }
+
+    // If the Remote Description is an Answer then Create 
+    if (rtcSessionDescription.type == 'answer')
+    {
+      this.rtcPeerConnection.setRemoteDescription(rtcSessionDescription)
+        .then(() => {
+          console.log('handshake complete')
+        })
+        .catch(this.errorHandler);
+    }
   }
 
   // Log errors to the console

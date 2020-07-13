@@ -3,10 +3,11 @@
 
 <ul>Create RTCConfiguration</ul>
 
-<ul>Create an offer</ul>
+<button mat-button (click)="createOffer()">createOffer</button>
 
 <ul>localDescription</ul>
 <textarea id="localDescription" name="localDescription">{{localDescription}}</textarea>
 
 <ul>remoteDescription</ul>
 <textarea id="remoteDescription" name="remoteDescription" (paste)="setRemoteDescription($event)"></textarea>
+
