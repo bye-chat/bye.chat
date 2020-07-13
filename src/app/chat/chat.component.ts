@@ -33,7 +33,6 @@ export class ChatComponent implements OnInit {
 
     // Create a Data Channel
     this.rtcDataChannel = this.rtcPeerConnection.createDataChannel('chat');
-    this.rtcDataChannel.
 
   }
 
