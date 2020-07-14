@@ -13,7 +13,7 @@ export class ChatComponent implements OnInit {
   private rtcIceCandidate: RTCIceCandidate;
 
   localDescription = 'create an offer to start.. or paste an offer into the remoteDescription to get an answer';
-  iceCandidates ='';
+  iceCandidates = '';
 
   constructor() { }
 
@@ -142,7 +142,7 @@ export class ChatComponent implements OnInit {
   }
 
   sendChat(): void {
-    let message = 'this is the first bye.chat message';
+    let message = (<HTMLInputElement>document.getElementById('chat')).value;
     this.rtcDataChannel.send(message);
     console.log('Sent Data: ' + message);
   }
